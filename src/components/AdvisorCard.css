@@ -1,0 +1,116 @@
+.advisor-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  opacity: 0;
+  animation: fadeIn 0.8s ease forwards;
+  animation-delay: var(--delay);
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.advisor-avatar-ring {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  padding: 4px;
+  background: conic-gradient(
+    var(--accent) 0deg,
+    transparent 60deg,
+    var(--accent) 120deg,
+    transparent 180deg,
+    var(--accent) 240deg,
+    transparent 300deg,
+    var(--accent) 360deg
+  );
+  position: relative;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.advisor-card:hover .advisor-avatar-ring {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.advisor-avatar-glow {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 15%, transparent), transparent 70%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.advisor-card:hover .advisor-avatar-glow {
+  opacity: 1;
+}
+
+.advisor-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: #1a1612;
+}
+
+.advisor-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: 1.4rem;
+  color: #C9A84C;
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+
+.advisor-role {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-style: italic;
+  font-size: 1.05rem;
+  color: color-mix(in srgb, var(--accent) 80%, #e8dcc8);
+  margin: 0;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+
+/* ── Staff variant ── */
+.advisor-avatar-ring--staff {
+  background: none;
+  border: 3px solid #00b4d8;
+}
+
+.advisor-staff-label {
+  font-family: 'Courier Prime', 'Courier New', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #00b4d8;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-bottom: -0.4rem;
+}
+
+.advisor-domain {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 0.85rem;
+  color: rgba(232, 220, 200, 0.4);
+  margin: 0;
+  letter-spacing: 0.06em;
+}
+
+.advisor-line {
+  width: 40px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  margin-top: 0.25rem;
+  opacity: 0.5;
+}

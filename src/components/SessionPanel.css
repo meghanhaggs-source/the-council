@@ -1,0 +1,588 @@
+/* ── Overlay ── */
+.session-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(10, 8, 6, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: overlayIn 0.3s ease;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Panel ── */
+.session-panel {
+  width: 100%;
+  max-width: 720px;
+  height: 85vh;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 8%, #1a1612) 0%,
+    #141210 100%
+  );
+  border-top: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow:
+    0 -10px 60px rgba(0, 0, 0, 0.5),
+    0 0 80px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* ── Header ── */
+.session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(232, 220, 200, 0.06);
+}
+
+.session-identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.session-avatar-ring {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  padding: 2px;
+  background: conic-gradient(
+    var(--accent) 0deg,
+    transparent 90deg,
+    var(--accent) 180deg,
+    transparent 270deg,
+    var(--accent) 360deg
+  );
+  flex-shrink: 0;
+}
+
+.session-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.session-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  font-size: 1.35rem;
+  color: var(--accent);
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+
+.session-role {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: rgba(232, 220, 200, 0.45);
+  margin: 0;
+  letter-spacing: 0.06em;
+}
+
+.session-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* ── Brief the Council Button ── */
+.brief-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  background: rgba(201, 168, 76, 0.06);
+  color: #C9A84C;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.brief-btn:hover:not(:disabled) {
+  background: rgba(201, 168, 76, 0.12);
+  border-color: rgba(201, 168, 76, 0.4);
+}
+
+.brief-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.brief-label {
+  display: inline;
+}
+
+.brief-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(201, 168, 76, 0.2);
+  border-top-color: #C9A84C;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Briefing Toast ── */
+.briefing-toast {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.95rem;
+  text-align: center;
+  padding: 0.6rem 1rem;
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 3.5s forwards;
+}
+
+.briefing-toast.sent {
+  background: rgba(201, 168, 76, 0.1);
+  color: #C9A84C;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.15);
+}
+
+.briefing-toast.error {
+  background: rgba(196, 92, 42, 0.1);
+  color: #c45c2a;
+  border-bottom: 1px solid rgba(196, 92, 42, 0.15);
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.session-close {
+  background: none;
+  border: 1px solid rgba(232, 220, 200, 0.1);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(232, 220, 200, 0.4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.session-close:hover {
+  color: #e8dcc8;
+  border-color: rgba(232, 220, 200, 0.25);
+  background: rgba(232, 220, 200, 0.05);
+}
+
+/* ── Messages ── */
+.session-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 220, 200, 0.1) transparent;
+}
+
+.message {
+  display: flex;
+  gap: 0.75rem;
+  max-width: 85%;
+  animation: msgIn 0.3s ease;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.message-user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message-assistant {
+  align-self: flex-start;
+}
+
+.message-avatar-small {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.message-avatar-small img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.message-bubble {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.08rem;
+  line-height: 1.55;
+  padding: 0.75rem 1rem;
+  border-radius: 14px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.message-assistant .message-bubble {
+  background: rgba(232, 220, 200, 0.05);
+  color: #e8dcc8;
+  border: 1px solid rgba(232, 220, 200, 0.06);
+  border-bottom-left-radius: 4px;
+}
+
+.message-user .message-bubble {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: #e8dcc8;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-bottom-right-radius: 4px;
+}
+
+/* ── Message Play Button ── */
+.msg-play-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(232, 220, 200, 0.1);
+  background: rgba(232, 220, 200, 0.04);
+  color: rgba(232, 220, 200, 0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 6px;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+.message-assistant:hover .msg-play-btn,
+.msg-play-btn--active {
+  opacity: 1;
+}
+
+.msg-play-btn:hover {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.msg-play-btn--active {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  animation: speakPulse 1.5s ease-in-out infinite;
+}
+
+/* Typing indicator */
+.typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.85rem 1.1rem;
+}
+
+.typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.4;
+  animation: dot 1.2s ease infinite;
+}
+
+.typing span:nth-child(2) { animation-delay: 0.15s; }
+.typing span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes dot {
+  0%, 60%, 100% { opacity: 0.25; transform: scale(0.8); }
+  30%           { opacity: 0.8;  transform: scale(1); }
+}
+
+/* ── Input ── */
+.session-input {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem 1.5rem;
+  border-top: 1px solid rgba(232, 220, 200, 0.06);
+}
+
+.session-input input {
+  flex: 1;
+  background: rgba(232, 220, 200, 0.04);
+  border: 1px solid rgba(232, 220, 200, 0.08);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  color: #e8dcc8;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.session-input input::placeholder {
+  color: rgba(232, 220, 200, 0.25);
+}
+
+.session-input input:focus {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.session-input button {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.session-input button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: var(--accent);
+}
+
+.session-input button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Upload Button ── */
+.upload-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(232, 220, 200, 0.12);
+  background: rgba(232, 220, 200, 0.04);
+  color: rgba(232, 220, 200, 0.45);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.upload-btn:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.upload-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Attachment Bar ── */
+.attachment-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 1.5rem;
+  border-top: 1px solid rgba(232, 220, 200, 0.04);
+}
+
+.attachment-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.9rem;
+  color: #e8dcc8;
+  animation: msgIn 0.2s ease;
+}
+
+.attachment-icon {
+  font-size: 0.85rem;
+}
+
+.attachment-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-remove {
+  all: unset;
+  cursor: pointer;
+  color: rgba(232, 220, 200, 0.4);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.15rem;
+  transition: color 0.2s ease;
+}
+
+.attachment-remove:hover {
+  color: #e8dcc8;
+}
+
+/* ── Speaking Pulse ── */
+.session-avatar-speaking {
+  animation: speakPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes speakPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 16px 6px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+}
+
+/* ── Mic Button ── */
+.mic-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(232, 220, 200, 0.12);
+  background: rgba(232, 220, 200, 0.04);
+  color: rgba(232, 220, 200, 0.45);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.mic-btn:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.mic-btn--active {
+  color: #e74c3c;
+  border-color: rgba(231, 76, 60, 0.4);
+  background: rgba(231, 76, 60, 0.1);
+  animation: micPulse 1.5s ease-in-out infinite;
+}
+
+.mic-btn--active:hover:not(:disabled) {
+  color: #e74c3c;
+  border-color: rgba(231, 76, 60, 0.6);
+  background: rgba(231, 76, 60, 0.15);
+}
+
+.mic-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.3); }
+  50%      { box-shadow: 0 0 12px 4px rgba(231, 76, 60, 0.15); }
+}
+
+/* ── Speaking Bar ── */
+.speaking-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1.5rem;
+  border-top: 1px solid rgba(232, 220, 200, 0.04);
+  animation: msgIn 0.3s ease;
+}
+
+.speaking-label {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.9rem;
+  font-style: italic;
+  color: color-mix(in srgb, var(--accent) 70%, #e8dcc8);
+  letter-spacing: 0.04em;
+}
+
+.stop-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid rgba(232, 220, 200, 0.15);
+  background: rgba(232, 220, 200, 0.05);
+  color: rgba(232, 220, 200, 0.5);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stop-btn:hover {
+  color: #e8dcc8;
+  border-color: rgba(232, 220, 200, 0.3);
+  background: rgba(232, 220, 200, 0.08);
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .session-panel {
+    height: 92vh;
+    max-width: 100%;
+  }
+
+  .session-header {
+    padding: 1rem;
+  }
+
+  .session-messages {
+    padding: 1rem;
+  }
+
+  .session-input {
+    padding: 0.75rem 1rem 1.25rem;
+  }
+
+  .message {
+    max-width: 92%;
+  }
+}

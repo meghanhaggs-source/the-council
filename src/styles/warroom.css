@@ -1,0 +1,158 @@
+/* ── Reset & Base ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: #1a1612;
+  color: #e8dcc8;
+  font-family: 'Cormorant Garamond', serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Grain Overlay ── */
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: 200px;
+}
+
+/* ── War Room Container ── */
+.warroom {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  position: relative;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 40%, rgba(201, 168, 76, 0.04), transparent),
+    radial-gradient(ellipse 60% 60% at 50% 100%, rgba(26, 22, 18, 1), transparent),
+    #1a1612;
+}
+
+/* ── Header ── */
+.warroom-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 5rem;
+}
+
+.title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  color: #C9A84C;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.subtitle {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-style: italic;
+  font-size: 1.1rem;
+  color: rgba(232, 220, 200, 0.45);
+  letter-spacing: 0.15em;
+}
+
+.header-line {
+  width: 120px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #C9A84C, transparent);
+  opacity: 0.4;
+}
+
+/* ── Section Headings ── */
+.section-heading {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: 1.2rem;
+  color: #C9A84C;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 2.5rem;
+  opacity: 0.6;
+}
+
+.section-heading--staff {
+  margin-bottom: 2rem;
+}
+
+/* ── Staff Divider ── */
+.staff-divider {
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #C9A84C, transparent);
+  opacity: 0.3;
+  margin: 4rem auto 2rem;
+}
+
+/* ── Staff Row ── */
+.staff-row {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 1rem;
+  margin-bottom: 2rem;
+}
+
+/* ── Council Arc Layout ── */
+.council-arc {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2rem;
+  max-width: 1200px;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+/* Create a subtle arc — middle advisors sit slightly higher */
+.council-arc > :nth-child(1) { transform: translateY(32px); }
+.council-arc > :nth-child(2) { transform: translateY(14px); }
+.council-arc > :nth-child(3) { transform: translateY(4px); }
+.council-arc > :nth-child(4) { transform: translateY(0); }
+.council-arc > :nth-child(5) { transform: translateY(4px); }
+.council-arc > :nth-child(6) { transform: translateY(14px); }
+.council-arc > :nth-child(7) { transform: translateY(32px); }
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .council-arc {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3rem 2rem;
+  }
+  .council-arc > :nth-child(n) {
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .council-arc {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 3rem 1.5rem;
+  }
+  .warroom {
+    padding: 3rem 1rem;
+  }
+  .warroom-header {
+    margin-bottom: 3rem;
+  }
+}
