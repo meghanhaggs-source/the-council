@@ -16,13 +16,34 @@ const supabase = createClient(
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 
-// ── Chat with Anthropic ──
+// ── Chat with Anthropic (web search enabled) ──
 app.post('/api/chat', async (req, res) => {
-  const { system, messages, model = 'claude-sonnet-4-20250514', max_tokens = 1024 } = req.body;
+  const { system, messages, model = 'claude-sonnet-4-20250514', max_tokens = 4096 } = req.body;
 
   try {
-    const response = await anthropic.messages.create({ model, max_tokens, system, messages });
-    res.json(response);
+    const response = await anthropic.messages.create({
+      model,
+      max_tokens,
+      system,
+      messages,
+      tools: [
+        {
+          type: 'web_search_20250305',
+          name: 'web_search',
+        },
+      ],
+    });
+
+    const textParts = response.content
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text);
+
+    const combinedText = textParts.join('\n\n');
+
+    res.json({
+      ...response,
+      content: [{ type: 'text', text: combinedText }],
+    });
   } catch (err) {
     console.error('Anthropic error:', err.message);
     res.status(err.status || 500).json({ error: err.message });
@@ -106,7 +127,6 @@ app.post('/api/brief', async (req, res) => {
   const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
   try {
-    // Generate the memo via Anthropic
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 512,
@@ -116,7 +136,6 @@ app.post('/api/brief', async (req, res) => {
 
     const memoContent = response.content?.[0]?.text || 'No memo generated.';
 
-    // Save to Supabase
     const { data, error } = await supabase
       .from('council_memos')
       .insert({ from_advisor: advisor_name, content: memoContent })
@@ -146,11 +165,7 @@ app.get('/api/voices', async (req, res) => {
     const response = await fetch('https://api.elevenlabs.io/v1/voices', {
       headers: { 'xi-api-key': apiKey },
     });
-    console.log('[voices] ElevenLabs status:', response.status);
     const data = await response.json();
-    console.log('[voices] Raw keys:', Object.keys(data));
-    console.log('[voices] Voice count:', data.voices?.length ?? 'no voices key');
-    // Return the full raw response for debugging
     res.json(data);
   } catch (err) {
     console.error('[voices] Error:', err.message);
@@ -161,22 +176,18 @@ app.get('/api/voices', async (req, res) => {
 // ── Text to Speech via ElevenLabs ──
 app.post('/api/tts', async (req, res) => {
   const { text, voiceId } = req.body;
-  console.log('[TTS] Request received — voiceId:', voiceId, '— text length:', text?.length);
 
   if (!text || !voiceId) {
-    console.error('[TTS] Missing text or voiceId');
     return res.status(400).json({ error: 'text and voiceId are required' });
   }
 
   const apiKey = process.env.VITE_ELEVENLABS_API_KEY;
   if (!apiKey) {
-    console.error('[TTS] VITE_ELEVENLABS_API_KEY not found in env');
     return res.status(500).json({ error: 'ElevenLabs API key not configured' });
   }
 
   try {
     const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
-    console.log('[TTS] Calling ElevenLabs:', url);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -191,22 +202,16 @@ app.post('/api/tts', async (req, res) => {
       }),
     });
 
-    console.log('[TTS] ElevenLabs response status:', response.status);
-
     if (!response.ok) {
       const err = await response.text();
-      console.error('[TTS] ElevenLabs error body:', err);
       return res.status(response.status).json({ error: err });
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    console.log('[TTS] Audio buffer size:', arrayBuffer.byteLength, 'bytes');
-
     res.set('Content-Type', 'audio/mpeg');
     res.send(Buffer.from(arrayBuffer));
-    console.log('[TTS] Audio sent to client');
   } catch (err) {
-    console.error('[TTS] Catch error:', err.message);
+    console.error('[TTS] Error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
