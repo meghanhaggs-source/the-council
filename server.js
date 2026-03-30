@@ -154,21 +154,245 @@ app.post('/api/brief', async (req, res) => {
   }
 });
 
-// ── List available ElevenLabs voices (debug) ──
-app.get('/api/voices', async (req, res) => {
-  const apiKey = process.env.VITE_ELEVENLABS_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'ElevenLabs API key not configured' });
+// ── Google OAuth: Start auth flow ──
+app.get('/api/google/auth', (req, res) => {
+  const redirectUri = `http://localhost:${port}/api/google/callback`;
+
+  const scopes = [
+    'https://www.googleapis.com/auth/drive.file',
+    'https://www.googleapis.com/auth/documents',
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/presentations',
+  ].join(' ');
+
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${process.env.GOOGLE_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&response_type=code` +
+    `&scope=${encodeURIComponent(scopes)}` +
+    `&access_type=offline` +
+    `&prompt=consent`;
+
+  res.redirect(authUrl);
+});
+
+// ── Google OAuth: Handle callback ──
+app.get('/api/google/callback', async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.status(400).send('No authorization code received');
+
+  const redirectUri = `http://localhost:${port}/api/google/callback`;
+
+  try {
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    const tokens = await tokenRes.json();
+    if (tokens.error) {
+      return res.status(400).json({ error: tokens.error_description });
+    }
+
+    const expiresAt = Date.now() + tokens.expires_in * 1000;
+
+    await supabase.from('google_tokens').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('google_tokens').insert({
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_at: expiresAt,
+    });
+
+    res.send(`
+      <html>
+        <body style="background:#1a1a1a;color:#d4af37;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+          <div style="text-align:center">
+            <h1>Google Drive Connected</h1>
+            <p>You can close this window and return to The Council.</p>
+          </div>
+        </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error('Google OAuth error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Google Drive: Check connection status ──
+app.get('/api/google/status', async (req, res) => {
+  const { data } = await supabase
+    .from('google_tokens')
+    .select('expires_at')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  res.json({ connected: !!data });
+});
+
+// ── Google Drive: Get valid token (with refresh) ──
+async function getValidToken() {
+  const { data } = await supabase
+    .from('google_tokens')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!data) throw new Error('No Google tokens found. Connect Google Drive first.');
+
+  if (Date.now() > data.expires_at - 60000) {
+    const refreshRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        refresh_token: data.refresh_token,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        grant_type: 'refresh_token',
+      }),
+    });
+
+    const newTokens = await refreshRes.json();
+    if (newTokens.error) throw new Error('Failed to refresh Google token');
+
+    const expiresAt = Date.now() + newTokens.expires_in * 1000;
+
+    await supabase
+      .from('google_tokens')
+      .update({ access_token: newTokens.access_token, expires_at: expiresAt, updated_at: new Date().toISOString() })
+      .eq('id', data.id);
+
+    return newTokens.access_token;
+  }
+
+  return data.access_token;
+}
+
+// ── Google Drive: Find or create folder ──
+async function findOrCreateFolder(token, name, parentId = null) {
+  let query = `name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  if (parentId) query += ` and '${parentId}' in parents`;
+
+  const searchRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const searchData = await searchRes.json();
+
+  if (searchData.files && searchData.files.length > 0) {
+    return searchData.files[0].id;
+  }
+
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name,
+      mimeType: 'application/vnd.google-apps.folder',
+      ...(parentId ? { parents: [parentId] } : {}),
+    }),
+  });
+
+  const folder = await createRes.json();
+  return folder.id;
+}
+
+// ── Google Drive: Create document or sheet ──
+app.post('/api/google/create-doc', async (req, res) => {
+  const { title, content, advisorName, type = 'doc' } = req.body;
+
+  if (!title || !content || !advisorName) {
+    return res.status(400).json({ error: 'title, content, and advisorName required' });
   }
 
   try {
-    const response = await fetch('https://api.elevenlabs.io/v1/voices', {
-      headers: { 'xi-api-key': apiKey },
+    const token = await getValidToken();
+
+    const councilFolderId = await findOrCreateFolder(token, 'The Council');
+    const advisorFolderId = await findOrCreateFolder(token, advisorName, councilFolderId);
+
+    if (type === 'sheet') {
+      const sheetRes = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ properties: { title } }),
+      });
+
+      const sheet = await sheetRes.json();
+
+      await fetch(`https://www.googleapis.com/drive/v3/files/${sheet.spreadsheetId}?addParents=${advisorFolderId}&removeParents=root`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (content) {
+        const rows = content.split('\n').map(row => row.split('\t'));
+        await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheet.spreadsheetId}/values/Sheet1!A1?valueInputOption=RAW`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ values: rows }),
+        });
+      }
+
+      return res.json({
+        id: sheet.spreadsheetId,
+        url: sheet.spreadsheetUrl,
+        type: 'sheet',
+      });
+    }
+
+    // Create Google Doc
+    const docRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: title,
+        mimeType: 'application/vnd.google-apps.document',
+        parents: [advisorFolderId],
+      }),
     });
-    const data = await response.json();
-    res.json(data);
+
+    const doc = await docRes.json();
+
+    await fetch(`https://docs.googleapis.com/v1/documents/${doc.id}:batchUpdate`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        requests: [{ insertText: { location: { index: 1 }, text: content } }],
+      }),
+    });
+
+    res.json({
+      id: doc.id,
+      url: `https://docs.google.com/document/d/${doc.id}/edit`,
+      type: 'doc',
+    });
   } catch (err) {
-    console.error('[voices] Error:', err.message);
+    console.error('Google Drive error:', err);
     res.status(500).json({ error: err.message });
   }
 });

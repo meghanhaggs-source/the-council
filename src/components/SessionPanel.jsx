@@ -23,6 +23,26 @@ function fileToBase64(file) {
   });
 }
 
+// ── Parse document markers from message ──
+function parseDocument(text) {
+  const match = text.match(/\[COUNCIL_DOC:\s*(.+?)\]([\s\S]*?)\[\/COUNCIL_DOC\]/);
+  if (!match) return null;
+  return { title: match[1].trim(), content: match[2].trim() };
+}
+
+function parseSheet(text) {
+  const match = text.match(/\[COUNCIL_SHEET:\s*(.+?)\]([\s\S]*?)\[\/COUNCIL_SHEET\]/);
+  if (!match) return null;
+  return { title: match[1].trim(), content: match[2].trim() };
+}
+
+function stripDocMarkers(text) {
+  return text
+    .replace(/\[COUNCIL_DOC:\s*.+?\][\s\S]*?\[\/COUNCIL_DOC\]/, '')
+    .replace(/\[COUNCIL_SHEET:\s*.+?\][\s\S]*?\[\/COUNCIL_SHEET\]/, '')
+    .trim();
+}
+
 // ── Speech-to-text hook ──
 function useSpeechToText(onTranscript) {
   const recogRef = useRef(null);
@@ -87,6 +107,8 @@ export default function SessionPanel({ advisor, onClose }) {
   const [toast, setToast] = useState(null);
   const [speaking, setSpeaking] = useState(false);
   const [speakingIdx, setSpeakingIdx] = useState(null);
+  const [savingDoc, setSavingDoc] = useState(null);
+  const [driveConnected, setDriveConnected] = useState(false);
   const messagesEnd = useRef(null);
   const inputRef = useRef(null);
   const fileRef = useRef(null);
@@ -96,10 +118,16 @@ export default function SessionPanel({ advisor, onClose }) {
   const canBrief = messages.length >= 4;
   const locked = speaking || loading;
 
-  // ── Speech to text — transcribe only, never auto-send ──
   const stt = useSpeechToText((transcript) => setInput(transcript));
 
-  // ── Stop audio helper ──
+  // Check Google Drive connection status
+  useEffect(() => {
+    fetch(`${API}/api/google/status`)
+      .then((r) => r.json())
+      .then((d) => setDriveConnected(d.connected))
+      .catch(() => setDriveConnected(false));
+  }, []);
+
   function stopAudio() {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -109,13 +137,46 @@ export default function SessionPanel({ advisor, onClose }) {
     setSpeakingIdx(null);
   }
 
-  // ── On-demand TTS for a specific message ──
+  // ── Save to Google Drive ──
+  async function saveToGDrive(doc, type = 'doc') {
+    if (!driveConnected) {
+      window.open(`${API}/api/google/auth`, '_blank');
+      return;
+    }
+
+    setSavingDoc(doc.title);
+    try {
+      const res = await fetch(`${API}/api/google/create-doc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: doc.title,
+          content: doc.content,
+          advisorName: advisor.name,
+          type,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to save');
+      }
+
+      const result = await res.json();
+      window.open(result.url, '_blank');
+      setToast('sent');
+    } catch (err) {
+      console.error('Google Drive save error:', err);
+      setToast('error');
+    } finally {
+      setSavingDoc(null);
+    }
+  }
+
   async function playMessage(text, msgIndex) {
     if (!advisor?.voiceId) return;
 
-    // Stop any currently playing audio
     stopAudio();
-
     setSpeaking(true);
     setSpeakingIdx(msgIndex);
 
@@ -127,7 +188,6 @@ export default function SessionPanel({ advisor, onClose }) {
       });
 
       if (!res.ok) {
-        console.error('[TTS] Server error:', res.status);
         stopAudio();
         return;
       }
@@ -150,8 +210,7 @@ export default function SessionPanel({ advisor, onClose }) {
         setSpeakingIdx(null);
       };
 
-      audio.play().catch((err) => {
-        console.error('[TTS] play() rejected:', err.message);
+      audio.play().catch(() => {
         setSpeaking(false);
         setSpeakingIdx(null);
       });
@@ -162,22 +221,18 @@ export default function SessionPanel({ advisor, onClose }) {
     }
   }
 
-  // Stop audio on unmount or advisor change
   useEffect(() => {
     return () => stopAudio();
   }, [advisor?.name]);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEnd.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // Focus input on open
   useEffect(() => {
     inputRef.current?.focus();
   }, [advisor?.name]);
 
-  // Auto-dismiss toast
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
@@ -270,40 +325,75 @@ export default function SessionPanel({ advisor, onClose }) {
         {toast && (
           <div className={`briefing-toast ${toast}`}>
             {toast === 'sent'
-              ? 'Briefing sent to the council'
-              : 'Failed to generate briefing'}
+              ? 'Saved to Google Drive'
+              : 'Failed — try again'}
           </div>
         )}
 
         {/* Messages */}
         <div className="session-messages">
-          {messages.map((msg, i) => (
-            <div key={i} className={`message message-${msg.role}`}>
-              {msg.role === 'assistant' && (
-                <div className="message-avatar-small">
-                  <img src={advisor.avatar} alt="" />
-                </div>
-              )}
-              <div className="message-bubble">{msg.content}</div>
-              {msg.role === 'assistant' && advisor.voiceId && (
-                <button
-                  className={`msg-play-btn${speakingIdx === i ? ' msg-play-btn--active' : ''}`}
-                  onClick={() => speakingIdx === i ? stopAudio() : playMessage(msg.content, i)}
-                  aria-label={speakingIdx === i ? 'Stop' : 'Play message'}
-                >
-                  {speakingIdx === i ? (
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <rect x="2" y="2" width="10" height="10" rx="2" fill="currentColor" />
-                    </svg>
-                  ) : (
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path d="M3 1.5v11l9.5-5.5z" fill="currentColor" />
-                    </svg>
+          {messages.map((msg, i) => {
+            const doc = msg.role === 'assistant' ? parseDocument(msg.content) : null;
+            const sheet = msg.role === 'assistant' ? parseSheet(msg.content) : null;
+            const displayText = doc || sheet ? stripDocMarkers(msg.content) : msg.content;
+
+            return (
+              <div key={i} className={`message message-${msg.role}`}>
+                {msg.role === 'assistant' && (
+                  <div className="message-avatar-small">
+                    <img src={advisor.avatar} alt="" />
+                  </div>
+                )}
+                <div className="message-bubble">
+                  {displayText}
+                  {doc && (
+                    <button
+                      className="gdrive-btn"
+                      onClick={() => saveToGDrive(doc, 'doc')}
+                      disabled={savingDoc === doc.title}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M5.5 1L1 8.5l2.5 4h9l2.5-4L10.5 1h-5z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                        <path d="M1 8.5h14" stroke="currentColor" strokeWidth="1.2" />
+                        <path d="M10.5 1L6 8.5" stroke="currentColor" strokeWidth="1.2" />
+                      </svg>
+                      <span>{savingDoc === doc.title ? 'Saving...' : `Save to Drive: ${doc.title}`}</span>
+                    </button>
                   )}
-                </button>
-              )}
-            </div>
-          ))}
+                  {sheet && (
+                    <button
+                      className="gdrive-btn gdrive-btn--sheet"
+                      onClick={() => saveToGDrive(sheet, 'sheet')}
+                      disabled={savingDoc === sheet.title}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <rect x="1.5" y="2" width="13" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                        <path d="M1.5 6h13M1.5 10h13M6 2v12" stroke="currentColor" strokeWidth="1.2" />
+                      </svg>
+                      <span>{savingDoc === sheet.title ? 'Saving...' : `Save Sheet: ${sheet.title}`}</span>
+                    </button>
+                  )}
+                </div>
+                {msg.role === 'assistant' && advisor.voiceId && (
+                  <button
+                    className={`msg-play-btn${speakingIdx === i ? ' msg-play-btn--active' : ''}`}
+                    onClick={() => speakingIdx === i ? stopAudio() : playMessage(displayText, i)}
+                    aria-label={speakingIdx === i ? 'Stop' : 'Play message'}
+                  >
+                    {speakingIdx === i ? (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <rect x="2" y="2" width="10" height="10" rx="2" fill="currentColor" />
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M3 1.5v11l9.5-5.5z" fill="currentColor" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
+            );
+          })}
           {loading && (
             <div className="message message-assistant">
               <div className="message-avatar-small">
@@ -370,7 +460,6 @@ export default function SessionPanel({ advisor, onClose }) {
               </button>
             </>
           )}
-          {/* Mic button */}
           {stt.supported && (
             <button
               type="button"

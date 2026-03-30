@@ -62,10 +62,18 @@ function buildContentBlocks(text, attachments) {
 }
 
 function buildSystemWithMemos(baseSystem, memos) {
-  if (!memos || memos.length === 0) return baseSystem;
+  const docInstructions = `
 
-  const memoBlock = memos.map((m) => m.content).join('\n\n---\n\n');
-  return `${baseSystem}\n\nCOUNCIL BRIEFINGS — read these before responding:\n${memoBlock}`;
+DOCUMENT CREATION: When Meghan asks you to create a document, plan, report, brief, or any formal written deliverable, wrap the document content in [COUNCIL_DOC: Title Here]...[/COUNCIL_DOC] markers. When she asks for a spreadsheet, budget, tracker, or tabular data, wrap it in [COUNCIL_SHEET: Title Here]...[/COUNCIL_SHEET] markers using tab-separated values (tabs between columns, newlines between rows). Always include a brief conversational message outside the markers explaining what you created. The markers trigger a Save to Google Drive button automatically.`;
+
+  let system = baseSystem + docInstructions;
+
+  if (memos && memos.length > 0) {
+    const memoBlock = memos.map((m) => m.content).join('\n\n---\n\n');
+    system += `\n\nCOUNCIL BRIEFINGS — read these before responding:\n${memoBlock}`;
+  }
+
+  return system;
 }
 
 export default function useChat(advisor) {
@@ -75,7 +83,6 @@ export default function useChat(advisor) {
   const [memos, setMemos] = useState([]);
   const hasGreeted = useRef(false);
 
-  // Load persisted messages and memos from Supabase when advisor changes
   useEffect(() => {
     if (!advisor) return;
     let cancelled = false;
@@ -114,7 +121,7 @@ export default function useChat(advisor) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 1024,
+          max_tokens: 4096,
           system,
           messages: apiMessages,
         }),
@@ -128,7 +135,6 @@ export default function useChat(advisor) {
       const data = await res.json();
       const text = data.content?.[0]?.text || "I'm here.";
 
-      // Persist assistant message to Supabase
       await saveMessage(adv.name, 'assistant', text);
 
       setMessages((prev) => [...prev, { role: 'assistant', content: text }]);
@@ -146,7 +152,6 @@ export default function useChat(advisor) {
       if (!advisor || loading) return;
       if (!text.trim() && (!attachments || attachments.length === 0)) return;
 
-      // Display text for the chat UI (include file labels)
       const fileLabels = (attachments || []).map((f) => `[${f.name}]`).join(' ');
       const displayText = [fileLabels, text.trim()].filter(Boolean).join(' ');
 
@@ -154,17 +159,13 @@ export default function useChat(advisor) {
       const updated = [...messages, userMsg];
       setMessages(updated);
 
-      // Persist only the text portion to Supabase (no file data)
       await saveMessage(advisor.name, 'user', displayText);
 
-      // Build API messages — use content blocks for the current message if it has attachments
       const apiMessages = updated.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
 
-      // Add current message with content blocks
       const content = buildContentBlocks(text.trim() || 'Please review the attached file.', attachments);
       apiMessages.push({ role: 'user', content });
 
-      // Prepend hidden greeting prompt if first message is an assistant greeting
       if (updated[0]?.role === 'assistant') {
         apiMessages.unshift({
           role: 'user',
@@ -182,7 +183,6 @@ export default function useChat(advisor) {
     setBriefing(true);
 
     try {
-      // Format conversation as readable text
       const transcript = messages
         .map((m) => `${m.role === 'user' ? 'Meghan' : advisor.name}: ${m.content}`)
         .join('\n\n');
