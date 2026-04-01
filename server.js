@@ -443,3 +443,14 @@ app.post('/api/tts', async (req, res) => {
 app.listen(port, () => {
   console.log(`[council] API server running on http://localhost:${port}`);
 });
+
+// ── Astro transit calculations (Swiss Ephemeris) ──
+app.get('/api/astro', async (req, res) => {
+  try {
+    const { default: handler } = await import('./api/astro.js');
+    await handler(req, res);
+  } catch (err) {
+    console.error('Astro error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});

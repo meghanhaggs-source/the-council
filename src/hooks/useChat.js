@@ -35,6 +35,17 @@ async function loadMemos() {
   }
 }
 
+async function loadTransits() {
+  try {
+    const res = await fetch(`${API}/api/astro`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.report;
+  } catch {
+    return null;
+  }
+}
+
 function buildContentBlocks(text, attachments) {
   if (!attachments || attachments.length === 0) return text;
 
@@ -61,12 +72,16 @@ function buildContentBlocks(text, attachments) {
   return blocks;
 }
 
-function buildSystemWithMemos(baseSystem, memos) {
+function buildSystemWithMemos(baseSystem, memos, transits = null) {
   const docInstructions = `
 
 DOCUMENT CREATION: When Meghan asks you to create a document, plan, report, brief, or any formal written deliverable, wrap the document content in [COUNCIL_DOC: Title Here]...[/COUNCIL_DOC] markers. When she asks for a spreadsheet, budget, tracker, or tabular data, wrap it in [COUNCIL_SHEET: Title Here]...[/COUNCIL_SHEET] markers using tab-separated values (tabs between columns, newlines between rows). Always include a brief conversational message outside the markers explaining what you created. The markers trigger a Save to Google Drive button automatically.`;
 
   let system = baseSystem + docInstructions;
+
+  if (transits) {
+    system += `\n\nLIVE ASTROLOGICAL DATA — Use this real-time transit data in your readings. This is calculated via Swiss Ephemeris with astronomical precision. Reference these positions naturally in conversation — do not dump the raw data. Weave it into your observations the way you would after glancing at an ephemeris before a session.\n\n${transits}`;
+  }
 
   if (memos && memos.length > 0) {
     const memoBlock = memos.map((m) => m.content).join('\n\n---\n\n');
@@ -81,6 +96,7 @@ export default function useChat(advisor) {
   const [loading, setLoading] = useState(false);
   const [briefing, setBriefing] = useState(false);
   const [memos, setMemos] = useState([]);
+  const [transits, setTransits] = useState(null);
   const hasGreeted = useRef(false);
 
   useEffect(() => {
@@ -88,17 +104,21 @@ export default function useChat(advisor) {
     let cancelled = false;
 
     async function init() {
-      const [stored, allMemos] = await Promise.all([
+      const isPriya = advisor.name === 'Priya';
+
+      const [stored, allMemos, transitData] = await Promise.all([
         loadMessages(advisor.name),
         loadMemos(),
+        isPriya ? loadTransits() : Promise.resolve(null),
       ]);
       if (cancelled) return;
       setMessages(stored);
       setMemos(allMemos);
+      setTransits(transitData);
 
       if (stored.length === 0 && !hasGreeted.current) {
         hasGreeted.current = true;
-        const system = buildSystemWithMemos(advisor.system, allMemos);
+        const system = buildSystemWithMemos(advisor.system, allMemos, transitData);
         fetchReply(advisor, [{ role: 'user', content: 'We are meeting for the first time. Greet me briefly — introduce yourself and what you bring to the council. Keep it to 2-3 sentences.' }], true, system);
       }
     }
@@ -114,7 +134,7 @@ export default function useChat(advisor) {
   async function fetchReply(adv, apiMessages, isGreeting = false, systemOverride = null) {
     setLoading(true);
     try {
-      const system = systemOverride || buildSystemWithMemos(adv.system, memos);
+      const system = systemOverride || buildSystemWithMemos(adv.system, memos, transits);
 
       const res = await fetch(`${API}/api/chat`, {
         method: 'POST',
@@ -175,7 +195,7 @@ export default function useChat(advisor) {
 
       fetchReply(advisor, apiMessages);
     },
-    [advisor, messages, loading, memos]
+    [advisor, messages, loading, memos, transits]
   );
 
   const briefTheCouncil = useCallback(async () => {
