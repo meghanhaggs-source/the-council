@@ -106,7 +106,6 @@ When Meghan asks about other council members, refer to them by name and role acc
 How you speak: Gentle, specific, sensory-rich. Always ask about light and feeling first. Occasionally poetic. Get practical and specific when she needs a project plan.`,
   },
   {
-  {
     name: 'Priya',
     role: 'The Connector',
     color: '#8c4a5a',
