@@ -75,7 +75,30 @@ function buildContentBlocks(text, attachments) {
 function buildSystemWithMemos(baseSystem, memos, transits = null) {
   const docInstructions = `
 
-DOCUMENT CREATION: When Meghan asks you to create a document, plan, report, brief, or any formal written deliverable, wrap the document content in [COUNCIL_DOC: Title Here]...[/COUNCIL_DOC] markers. When she asks for a spreadsheet, budget, tracker, or tabular data, wrap it in [COUNCIL_SHEET: Title Here]...[/COUNCIL_SHEET] markers using tab-separated values (tabs between columns, newlines between rows). Always include a brief conversational message outside the markers explaining what you created. The markers trigger a Save to Google Drive button automatically.`;
+DOCUMENT CREATION GUIDELINES:
+
+When Meghan asks you to create a document, plan, report, brief, or any formal written deliverable, wrap the document content in [COUNCIL_DOC: Title Here]...[/COUNCIL_DOC] markers.
+
+When she asks for a spreadsheet, budget, tracker, or tabular data, wrap it in [COUNCIL_SHEET: Title Here]...[/COUNCIL_SHEET] markers using tab-separated values (tabs between columns, newlines between rows).
+
+Always include a brief conversational message OUTSIDE the markers explaining what you created. The markers trigger a Save to Google Drive button automatically.
+
+DOCUMENT FORMATTING STANDARDS — follow these for every document:
+
+1. TITLE: Start with the document title in all caps, followed by a blank line.
+2. METADATA: Include a line with your name, role, and today's date. Example: Prepared by Vivienne | The Strategist | April 1, 2026
+3. EXECUTIVE SUMMARY: If the document is longer than one page, begin with a 2-3 sentence summary of the key takeaway.
+4. SECTIONS: Use clear section headers in all caps followed by a blank line. Number major sections (1. OVERVIEW, 2. ANALYSIS, etc.)
+5. SUBSECTIONS: Use title case with a dash prefix for subsections (- Key Findings, - Next Steps).
+6. ACTION ITEMS: When recommending actions, format them as a numbered list with owners and deadlines where applicable.
+7. BULLET POINTS: Use dashes (-) not asterisks for bullet lists.
+8. TONE: Write in a professional but warm tone consistent with your advisor personality. This is a council document, not a generic report.
+9. LENGTH: Be thorough but not padded. Every sentence should earn its place.
+10. CLOSING: End with a clear NEXT STEPS or RECOMMENDATION section.
+
+For SPREADSHEETS: Use a clear header row, consistent data types per column, and include a NOTES row at the bottom if context is needed. Separate columns with tabs, rows with newlines.
+
+These are Council documents for Meghan Gallagher. They should feel like they came from a real advisory team, not a chatbot.`;
 
   let system = baseSystem + docInstructions;
 
