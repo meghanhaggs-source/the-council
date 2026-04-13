@@ -75,6 +75,8 @@ function buildContentBlocks(text, attachments) {
 function buildSystemWithMemos(baseSystem, memos, transits = null) {
   const docInstructions = `
 
+RESPONSE STYLE: Be concise and direct. Lead with the answer. Do not recap context, prior information, or what you're about to say. Match length to what was actually asked — conversational questions get conversational answers. Never narrate what you're doing or what data you're drawing from.
+
 DOCUMENT CREATION GUIDELINES:
 
 When Meghan asks you to create a document, plan, report, brief, or any formal written deliverable, wrap the document content in [COUNCIL_DOC: Title Here]...[/COUNCIL_DOC] markers.
