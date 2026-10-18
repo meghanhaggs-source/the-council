@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { system, messages, model = 'claude-sonnet-4-20250514', max_tokens = 4096 } = req.body;
+  const { system, messages, model = 'claude-haiku-5-5', max_tokens = 4096 } = req.body;
 
   try {
     const response = await anthropic.messages.create({
