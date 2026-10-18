@@ -41,18 +41,11 @@ function lngToSign(lng) {
   return { sign: SIGNS[signIndex], degree, longitude: normalized };
 }
 
+const ASC_SIGN_INDEX = 2; // Gemini rising. Whole sign houses: house = signs counted from the rising sign
 function getHouse(lng) {
   const normalized = ((lng % 360) + 360) % 360;
-  for (let i = 0; i < 12; i++) {
-    const cusp = HOUSE_CUSPS[i];
-    const nextCusp = HOUSE_CUSPS[(i + 1) % 12];
-    if (nextCusp > cusp) {
-      if (normalized >= cusp && normalized < nextCusp) return i + 1;
-    } else {
-      if (normalized >= cusp || normalized < nextCusp) return i + 1;
-    }
-  }
-  return 1;
+  const signIndex = Math.floor(normalized / 30);
+  return ((signIndex - ASC_SIGN_INDEX + 12) % 12) + 1;
 }
 
 function angleBetween(a, b) {
