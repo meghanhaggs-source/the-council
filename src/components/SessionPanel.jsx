@@ -335,7 +335,7 @@ export default function SessionPanel({ advisor, onClose }) {
           {messages.map((msg, i) => {
             const doc = msg.role === 'assistant' ? parseDocument(msg.content) : null;
             const sheet = msg.role === 'assistant' ? parseSheet(msg.content) : null;
-            const displayText = doc || sheet ? stripDocMarkers(msg.content) : msg.content;
+            const displayText = (doc || sheet ? stripDocMarkers(msg.content) : msg.content).replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 
             return (
               <div key={i} className={`message message-${msg.role}`}>

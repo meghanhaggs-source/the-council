@@ -26,12 +26,12 @@ const NATAL_PLANETS = [
 const HOUSE_CUSPS = [88, 112, 138, 184, 210, 240, 268, 292, 318, 334, 30, 58];
 
 const ASPECTS = [
-  { name: 'conjunct', angle: 0, orbLum: 8, orbPlan: 6 },
-  { name: 'opposite', angle: 180, orbLum: 8, orbPlan: 6 },
-  { name: 'square', angle: 90, orbLum: 7, orbPlan: 5 },
-  { name: 'trine', angle: 120, orbLum: 8, orbPlan: 6 },
-  { name: 'sextile', angle: 60, orbLum: 4, orbPlan: 4 },
-  { name: 'quincunx', angle: 150, orbLum: 3, orbPlan: 3 },
+  { name: 'conjunct', angle: 0, orbLum: 2, orbPlan: 1 },
+  { name: 'opposite', angle: 180, orbLum: 2, orbPlan: 1 },
+  { name: 'square', angle: 90, orbLum: 2, orbPlan: 1 },
+  { name: 'trine', angle: 120, orbLum: 2, orbPlan: 1 },
+  { name: 'sextile', angle: 60, orbLum: 1.5, orbPlan: 1 },
+  { name: 'quincunx', angle: 150, orbLum: 1, orbPlan: 1 },
 ];
 
 function lngToSign(lng) {
@@ -141,7 +141,7 @@ export default async function handler(req, res) {
 
       if (aspectsForPlanet.length > 0) {
         const aspStr = aspectsForPlanet
-          .map(a => `${a.aspect} natal ${a.natalPlanet} ${a.natalDeg}° ${a.natalSign} in ${ordinal(a.natalHouse)} house (orb ${a.orb}°)`)
+          .map(a => `${a.aspect} natal ${a.natalPlanet} ${a.natalDeg}° ${a.natalSign} in ${ordinal(a.natalHouse)} house (orb ${a.orb}°, ${a.orb <= 0.5 ? 'EXACT' : 'close'})`)
           .join(', ');
         line += ` — ${aspStr}`;
       }
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
     if (significant.length > 0) {
       report += `\nSIGNIFICANT ASPECTS (tight orbs):\n`;
       for (const a of significant) {
-        report += `  Transit ${a.transitPlanet} ${a.aspect} natal ${a.natalPlanet} (orb ${a.orb}°) — this is active and significant right now\n`;
+        report += `  Transit ${a.transitPlanet} ${a.aspect} natal ${a.natalPlanet} (orb ${a.orb}°, ${a.orb <= 0.5 ? 'EXACT' : 'close'}) — this is active and significant right now\n`;
       }
     }
 

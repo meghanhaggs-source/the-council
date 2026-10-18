@@ -129,7 +129,7 @@ export default function useChat(advisor) {
     let cancelled = false;
 
     async function init() {
-      const isPriya = advisor.name === 'Priya';
+      const isPriya = advisor.name === 'Io';
 
       const [stored, allMemos, transitData] = await Promise.all([
         loadMessages(advisor.name),
