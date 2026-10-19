@@ -141,7 +141,7 @@ export default async function handler(req, res) {
 
       if (aspectsForPlanet.length > 0) {
         const aspStr = aspectsForPlanet
-          .map(a => `${a.aspect} natal ${a.natalPlanet} ${a.natalDeg}° ${a.natalSign} in ${ordinal(a.natalHouse)} house (orb ${a.orb}°, ${a.orb <= 0.5 ? 'EXACT' : 'close'})`)
+          .map(a => `${a.aspect} natal ${a.natalPlanet} ${a.natalDeg}° ${a.natalSign} in ${ordinal(a.natalHouse)} house (orb ${a.orb}°, ${a.orb <= 0.5 ? 'EXACT' : 'close'}${a.transitPlanet === a.natalPlanet ? ', PRIORITY: planet contacting its own natal position' : ''})`)
           .join(', ');
         line += ` — ${aspStr}`;
       }
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
     if (significant.length > 0) {
       report += `\nSIGNIFICANT ASPECTS (tight orbs):\n`;
       for (const a of significant) {
-        report += `  Transit ${a.transitPlanet} ${a.aspect} natal ${a.natalPlanet} (orb ${a.orb}°, ${a.orb <= 0.5 ? 'EXACT' : 'close'}) — this is active and significant right now\n`;
+        report += `  Transit ${a.transitPlanet} ${a.aspect} natal ${a.natalPlanet} (orb ${a.orb}°, ${a.orb <= 0.5 ? 'EXACT' : 'close'}${a.transitPlanet === a.natalPlanet ? ', PRIORITY: planet contacting its own natal position' : ''}) — this is active and significant right now\n`;
       }
     }
 

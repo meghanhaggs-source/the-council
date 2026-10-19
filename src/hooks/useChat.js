@@ -105,7 +105,7 @@ These are Council documents for Meghan Gallagher. They should feel like they cam
   let system = baseSystem + docInstructions;
 
   if (transits) {
-    system += `\n\nLIVE ASTROLOGICAL DATA — Use this real-time transit data in your readings. This is calculated via Swiss Ephemeris with astronomical precision. Reference these positions naturally in conversation — do not dump the raw data. Weave it into your observations the way you would after glancing at an ephemeris before a session.\n\n${transits}`;
+    system += `\n\nCURRENT DATE AND TIME: ${new Date().toLocaleString("en-US", { timeZone: "America/New_York", dateStyle: "full", timeStyle: "short" })} Eastern. The transit data below was calculated at this moment and is current. Trust it. Never ask the user for planetary positions.\n\nLIVE ASTROLOGICAL DATA — Use this real-time transit data in your readings. This is calculated via Swiss Ephemeris with astronomical precision. Reference these positions naturally in conversation — do not dump the raw data. Weave it into your observations the way you would after glancing at an ephemeris before a session.\n\n${transits}`;
   }
 
   if (memos && memos.length > 0) {
