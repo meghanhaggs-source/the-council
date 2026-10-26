@@ -21,6 +21,7 @@ const NATAL_PLANETS = [
   { name: 'Pluto', lng: 202, sign: 'Libra', deg: 22, house: 5 },
   { name: 'Chiron', lng: 46, sign: 'Taurus', deg: 16, house: 12 },
   { name: 'North Node', lng: 126, sign: 'Leo', deg: 6, house: 3 },
+  { name: 'South Node', lng: 306, sign: 'Aquarius', deg: 6, house: 9 },
 ];
 
 const HOUSE_CUSPS = [88, 112, 138, 184, 210, 240, 268, 292, 318, 334, 30, 58];
@@ -85,13 +86,61 @@ function isRetrograde(speed) {
   return speed < 0;
 }
 
+function jdToDate(jd) { return new Date((jd - 2440587.5) * 86400000); }
+function fmtET(d) {
+  return d.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+}
+function aspectText(list) {
+  return list.map(a => `${a.who ? a.who + ' ' : ''}${a.aspect} natal ${a.natalPlanet} (orb ${a.orb}°)`).join(', ') || 'no tight contacts to the natal chart';
+}
+function buildUpcoming(swe, jd0) {
+  const lines = [];
+  let prev = null;
+  for (let m = 0; m <= 14 * 24 * 60; m += 5) {
+    const jd = jd0 + m / 1440;
+    const sun = swe.calc_ut(jd, 0, 256)[0];
+    const moon = swe.calc_ut(jd, 1, 256)[0];
+    const el = (((moon - sun) % 360) + 360) % 360;
+    if (prev !== null) {
+      let label = null;
+      if (prev > 350 && el < 10) label = 'New Moon';
+      if (prev < 180 && el >= 180) label = 'Full Moon';
+      if (label) {
+        const pos = lngToSign(moon);
+        const house = getHouse(moon);
+        const asp = findAspects('Moon', moon).map(a => ({...a, who: 'Moon'})).concat(label === 'Full Moon' ? findAspects('Sun', sun).map(a => ({...a, who: 'Sun'})) : []);
+        lines.push(`${label}: ${fmtET(jdToDate(jd))} ET at ${pos.degree}° ${pos.sign}, in the ${ordinal(house)} house. Contacts: ${aspectText(asp)}`);
+      }
+    }
+    prev = el;
+  }
+  for (const [name, id] of Object.entries(PLANET_IDS)) {
+    if (name === 'Sun' || name === 'Moon') continue;
+    let prevSpeed = null;
+    for (let h = 0; h <= 30 * 24; h += 6) {
+      const jd = jd0 + h / 24;
+      const r = swe.calc_ut(jd, id, 256);
+      const speed = r[3];
+      if (prevSpeed !== null && Math.sign(speed) !== Math.sign(prevSpeed)) {
+        const pos = lngToSign(r[0]);
+        const dir = speed < 0 ? 'stations retrograde' : 'stations direct';
+        lines.push(`${name} ${dir}: ${fmtET(jdToDate(jd))} ET at ${pos.degree}° ${pos.sign}, in the ${ordinal(getHouse(r[0]))} house`);
+      }
+      prevSpeed = speed;
+    }
+  }
+  return lines;
+}
+
+
 export default async function handler(req, res) {
   try {
     const SwissEph = (await import('swisseph-wasm')).default;
     const swe = new SwissEph();
     await swe.initSwissEph();
 
-    const now = new Date();
+    const requested = req && req.query && req.query.date ? new Date(req.query.date) : null;
+    const now = requested && !isNaN(requested) ? requested : new Date();
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth() + 1;
     const day = now.getUTCDate();
@@ -133,6 +182,8 @@ export default async function handler(req, res) {
     report += `Calculated via Swiss Ephemeris (precision: 0.001 arcseconds)\n`;
     report += `Reference: Meghan's natal chart (April 22, 1981, Philadelphia PA, 28° Gemini rising)\n\n`;
 
+    const upcoming = buildUpcoming(swe, jd);
+    if (upcoming.length) report += `UPCOMING (next 14 days for lunations, 30 for stations):\n  ` + upcoming.join('\n  ') + `\n\n`;
     report += `PLANETARY POSITIONS:\n`;
     for (const p of transitPlanets) {
       const retro = p.retrograde ? ' Rx' : '';

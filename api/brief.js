@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-5-5',
+      model: 'claude-sonnet-5-5',
       max_tokens: 512,
       system: `You are summarizing a conversation between Meghan and ${advisor_name}. Extract the key decisions, insights, context, and action items in a concise briefing memo that other advisors need to know. Write it as: BRIEFING FROM ${advisor_name.toUpperCase()} — ${today}. Keep it under 200 words. Be specific.`,
       messages: [{ role: 'user', content: conversation }],
